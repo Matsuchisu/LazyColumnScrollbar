@@ -107,34 +107,34 @@ internal fun rememberLazyGridStateController(
                     1f - it.visibleItemsInfo.last().fractionVisibleBottom(it.viewportEndOffset)
 
                 val realSize =
-                    ceil(it.visibleItemsInfo.size.toFloat() / nElementsMainAxis.value.toFloat()) - if (isStickyHeaderInAction.value) 1f else 0f
+                    ceil(it.visibleItemsInfo.size.toFloat() / nElementsMainAxis.safeValue.toFloat()) - if (isStickyHeaderInAction.value) 1f else 0f
                 val realVisibleSize = realSize - firstPartial - lastPartial
-                realVisibleSize / ceil(it.totalItemsCount.toFloat() / nElementsMainAxis.value.toFloat())
+                realVisibleSize / ceil(it.totalItemsCount.toFloat() / nElementsMainAxis.safeValue.toFloat())
             }
         }
     }
 
     val thumbSizeNormalized = remember {
         derivedStateOf {
-            thumbSizeNormalizedReal.value.coerceIn(
-                thumbMinLengthUpdated.value,
-                thumbMaxLengthUpdated.value,
+            thumbSizeNormalizedReal.safeValue.coerceIn(
+                thumbMinLengthUpdated.safeValue,
+                thumbMaxLengthUpdated.safeValue,
             )
         }
     }
 
     fun offsetCorrection(top: Float): Float {
-        val topRealMax = (1f - thumbSizeNormalizedReal.value).coerceIn(0f, 1f)
-        if (thumbSizeNormalizedReal.value >= thumbMinLengthUpdated.value) {
+        val topRealMax = (1f - thumbSizeNormalizedReal.safeValue).coerceIn(0f, 1f)
+        if (thumbSizeNormalizedReal.safeValue >= thumbMinLengthUpdated.safeValue) {
             return when {
-                reverseLayout.value -> topRealMax - top
+                reverseLayout.safeValue -> topRealMax - top
                 else -> top
             }
         }
 
-        val topMax = 1f - thumbMinLengthUpdated.value
+        val topMax = 1f - thumbMinLengthUpdated.safeValue
         return when {
-            reverseLayout.value -> (topRealMax - top) * topMax / topRealMax
+            reverseLayout.safeValue -> (topRealMax - top) * topMax / topRealMax
             else -> top * topMax / topRealMax
         }
     }
@@ -147,10 +147,10 @@ internal fun rememberLazyGridStateController(
 
                 val firstItem = realFirstVisibleItem.value ?: return@let 0f
                 val top = firstItem.run {
-                    ceil(index.toFloat() / nElementsMainAxis.value.toFloat()) + fractionHiddenTop(
+                    ceil(index.toFloat() / nElementsMainAxis.safeValue.toFloat()) + fractionHiddenTop(
                         state.firstVisibleItemScrollOffset
                     )
-                } / ceil(it.totalItemsCount.toFloat() / nElementsMainAxis.value.toFloat())
+                } / ceil(it.totalItemsCount.toFloat() / nElementsMainAxis.safeValue.toFloat())
                 offsetCorrection(top)
             }
         }
@@ -158,7 +158,7 @@ internal fun rememberLazyGridStateController(
 
     val thumbIsInAction = remember {
         derivedStateOf {
-            state.isScrollInProgress || isSelected.value || alwaysShowScrollBarUpdated.value
+            state.isScrollInProgress || isSelected.safeValue || alwaysShowScrollBarUpdated.safeValue
         }
     }
 
@@ -206,8 +206,8 @@ internal class LazyGridStateController(
     }
 
     override fun onDraggableState(deltaPixels: Float, maxLengthPixels: Float) {
-        val displace = if (reverseLayout.value) -deltaPixels else deltaPixels // side effect ?
-        if (isSelected.value) {
+        val displace = if (reverseLayout.safeValue) -deltaPixels else deltaPixels // side effect ?
+        if (isSelected.safeValue) {
             setScrollOffset(dragOffset.floatValue + displace / maxLengthPixels)
         }
     }
@@ -215,17 +215,17 @@ internal class LazyGridStateController(
     override fun onDragStarted(offsetPixels: Float, maxLengthPixels: Float) {
         if (maxLengthPixels <= 0f) return
         val newOffset = when {
-            reverseLayout.value -> (maxLengthPixels - offsetPixels) / maxLengthPixels
+            reverseLayout.safeValue -> (maxLengthPixels - offsetPixels) / maxLengthPixels
             else -> offsetPixels / maxLengthPixels
         }
         val currentOffset = when {
-            reverseLayout.value -> 1f - thumbOffsetNormalized.value - thumbSizeNormalized.value
-            else -> thumbOffsetNormalized.value
+            reverseLayout.safeValue -> 1f - thumbOffsetNormalized.safeValue - thumbSizeNormalized.safeValue
+            else -> thumbOffsetNormalized.safeValue
         }
 
         when (selectionMode.value) {
             ScrollbarSelectionMode.Full -> {
-                if (newOffset in currentOffset..(currentOffset + thumbSizeNormalized.value))
+                if (newOffset in currentOffset..(currentOffset + thumbSizeNormalized.safeValue))
                     setDragOffset(currentOffset)
                 else
                     setScrollOffset(newOffset)
@@ -233,7 +233,7 @@ internal class LazyGridStateController(
             }
 
             ScrollbarSelectionMode.Thumb -> {
-                if (newOffset in currentOffset..(currentOffset + thumbSizeNormalized.value)) {
+                if (newOffset in currentOffset..(currentOffset + thumbSizeNormalized.safeValue)) {
                     setDragOffset(currentOffset)
                     _isSelected.value = true
                 }
@@ -250,9 +250,9 @@ internal class LazyGridStateController(
     private fun setScrollOffset(newOffset: Float) {
         setDragOffset(newOffset)
         val totalItemsCount =
-            ceil(state.layoutInfo.totalItemsCount.toFloat() / nElementsMainAxis.value.toFloat())
+            ceil(state.layoutInfo.totalItemsCount.toFloat() / nElementsMainAxis.safeValue.toFloat())
         val exactIndex = offsetCorrectionInverse(totalItemsCount * dragOffset.floatValue)
-        val index: Int = floor(exactIndex).toInt() * nElementsMainAxis.value
+        val index: Int = floor(exactIndex).toInt() * nElementsMainAxis.safeValue
         val remainder: Float = exactIndex - floor(exactIndex)
 
         coroutineScope.launch {
@@ -272,15 +272,15 @@ internal class LazyGridStateController(
     }
 
     private fun setDragOffset(value: Float) {
-        val maxValue = (1f - thumbSizeNormalized.value).coerceAtLeast(0f)
+        val maxValue = (1f - thumbSizeNormalized.safeValue).coerceAtLeast(0f)
         dragOffset.floatValue = value.coerceIn(0f, maxValue)
     }
 
     private fun offsetCorrectionInverse(top: Float): Float {
-        if (thumbSizeNormalizedReal.value >= thumbMinLength.value)
+        if (thumbSizeNormalizedReal.safeValue >= thumbMinLength.safeValue)
             return top
-        val topRealMax = 1f - thumbSizeNormalizedReal.value
-        val topMax = 1f - thumbMinLength.value
+        val topRealMax = 1f - thumbSizeNormalizedReal.safeValue
+        val topMax = 1f - thumbMinLength.safeValue
         return top * topRealMax / topMax
     }
 }

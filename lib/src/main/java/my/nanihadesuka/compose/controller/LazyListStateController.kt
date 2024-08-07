@@ -73,7 +73,7 @@ internal fun rememberLazyListStateController(
                     it.viewportEndOffset - it.afterContentPadding
                 )
 
-                val realSize = it.visibleItemsInfo.size - if (isStickyHeaderInAction.value) 1 else 0
+                val realSize = it.visibleItemsInfo.size - if (isStickyHeaderInAction.safeValue) 1 else 0
                 val realVisibleSize = realSize.toFloat() - firstPartial - lastPartial
                 realVisibleSize / it.totalItemsCount.toFloat()
             }
@@ -82,25 +82,25 @@ internal fun rememberLazyListStateController(
 
     val thumbSizeNormalized = remember {
         derivedStateOf {
-            thumbSizeNormalizedReal.value.coerceIn(
-                thumbMinLengthUpdated.value,
-                thumbMaxLengthUpdated.value,
+            thumbSizeNormalizedReal.safeValue.coerceIn(
+                thumbMinLengthUpdated.safeValue,
+                thumbMaxLengthUpdated.safeValue,
             )
         }
     }
 
     fun offsetCorrection(top: Float): Float {
-        val topRealMax = (1f - thumbSizeNormalizedReal.value).coerceIn(0f, 1f)
-        if (thumbSizeNormalizedReal.value >= thumbMinLengthUpdated.value) {
+        val topRealMax = (1f - thumbSizeNormalizedReal.safeValue).coerceIn(0f, 1f)
+        if (thumbSizeNormalizedReal.safeValue >= thumbMinLengthUpdated.safeValue) {
             return when {
-                reverseLayout.value -> topRealMax - top
+                reverseLayout.safeValue -> topRealMax - top
                 else -> top
             }
         }
 
-        val topMax = 1f - thumbMinLengthUpdated.value
+        val topMax = 1f - thumbMinLengthUpdated.safeValue
         return when {
-            reverseLayout.value -> (topRealMax - top) * topMax / topRealMax
+            reverseLayout.safeValue -> (topRealMax - top) * topMax / topRealMax
             else -> top * topMax / topRealMax
         }
     }
@@ -120,7 +120,7 @@ internal fun rememberLazyListStateController(
     }
 
     val thumbIsInAction = remember {
-        derivedStateOf { state.isScrollInProgress || isSelected.value || alwaysShowScrollBarUpdated.value }
+        derivedStateOf { state.isScrollInProgress || isSelected.safeValue || alwaysShowScrollBarUpdated.safeValue }
     }
 
     return remember {
@@ -159,11 +159,11 @@ internal class LazyListStateController(
 
     private val firstVisibleItemIndex = derivedStateOf { state.firstVisibleItemIndex }
 
-    override fun indicatorValue() = firstVisibleItemIndex.value
+    override fun indicatorValue() = firstVisibleItemIndex.safeValue
 
     override fun onDraggableState(deltaPixels: Float, maxLengthPixels: Float) {
-        val displace = if (reverseLayout.value) -deltaPixels else deltaPixels // side effect ?
-        if (isSelected.value) {
+        val displace = if (reverseLayout.safeValue) -deltaPixels else deltaPixels // side effect ?
+        if (isSelected.safeValue) {
             setScrollOffset(dragOffset.floatValue + displace / maxLengthPixels)
         }
     }
@@ -171,17 +171,17 @@ internal class LazyListStateController(
     override fun onDragStarted(offsetPixels: Float, maxLengthPixels: Float) {
         if (maxLengthPixels <= 0f) return
         val newOffset = when {
-            reverseLayout.value -> (maxLengthPixels - offsetPixels) / maxLengthPixels
+            reverseLayout.safeValue -> (maxLengthPixels - offsetPixels) / maxLengthPixels
             else -> offsetPixels / maxLengthPixels
         }
         val currentOffset = when {
-            reverseLayout.value -> 1f - thumbOffsetNormalized.value - thumbSizeNormalized.value
-            else -> thumbOffsetNormalized.value
+            reverseLayout.safeValue -> 1f - thumbOffsetNormalized.value - thumbSizeNormalized.safeValue
+            else -> thumbOffsetNormalized.safeValue
         }
 
         when (selectionMode.value) {
             ScrollbarSelectionMode.Full -> {
-                if (newOffset in currentOffset..(currentOffset + thumbSizeNormalized.value))
+                if (newOffset in currentOffset..(currentOffset + thumbSizeNormalized.safeValue))
                     setDragOffset(currentOffset)
                 else
                     setScrollOffset(newOffset)
@@ -189,7 +189,7 @@ internal class LazyListStateController(
             }
 
             ScrollbarSelectionMode.Thumb -> {
-                if (newOffset in currentOffset..(currentOffset + thumbSizeNormalized.value)) {
+                if (newOffset in currentOffset..(currentOffset + thumbSizeNormalized.safeValue)) {
                     setDragOffset(currentOffset)
                     _isSelected.value = true
                 }
@@ -204,15 +204,15 @@ internal class LazyListStateController(
     }
 
     private fun setDragOffset(value: Float) {
-        val maxValue = (1f - thumbSizeNormalized.value).coerceAtLeast(0f)
+        val maxValue = (1f - thumbSizeNormalized.safeValue).coerceAtLeast(0f)
         dragOffset.floatValue = value.coerceIn(0f, maxValue)
     }
 
     private fun offsetCorrectionInverse(top: Float): Float {
-        if (thumbSizeNormalizedReal.value >= thumbMinLength.value)
+        if (thumbSizeNormalizedReal.safeValue >= thumbMinLength.safeValue)
             return top
-        val topRealMax = 1f - thumbSizeNormalizedReal.value
-        val topMax = 1f - thumbMinLength.value
+        val topRealMax = 1f - thumbSizeNormalizedReal.safeValue
+        val topMax = 1f - thumbMinLength.safeValue
         return top * topRealMax / topMax
     }
 
